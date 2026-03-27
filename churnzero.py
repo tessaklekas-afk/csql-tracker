@@ -30,15 +30,15 @@ def _get(endpoint, filter_str=None, top=50):
     return resp.json()
 
 
-def get_high_health_accounts(min_score=70, top=50):
-    """Return active accounts on the composite score model (ID 21) with score >= min_score."""
+def get_high_health_accounts(max_score=33, top=50):
+    """Return active accounts on the composite score model (ID 21) with score <= max_score (low churn = healthy)."""
     data = _get(
         "/Account",
-        filter_str=f"PrimaryChurnScoreValue ge {min_score} and IsActive eq true and PrimaryChurnScoreId eq 21",
+        filter_str=f"PrimaryChurnScoreValue le {max_score} and IsActive eq true and PrimaryChurnScoreId eq 21",
         top=top,
     )
     accounts = data.get("value", [])
-    accounts.sort(key=lambda a: a.get("PrimaryChurnScoreValue") or 0, reverse=True)
+    accounts.sort(key=lambda a: a.get("PrimaryChurnScoreValue") or 0)
     return accounts
 
 

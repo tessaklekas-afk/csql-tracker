@@ -34,9 +34,9 @@ def create_app():
     def score_color(value):
         if value is None:
             return "gray"
-        if value >= 85:
+        if value <= 15:
             return "green"
-        if value >= 70:
+        if value <= 33:
             return "yellow"
         return "red"
 
