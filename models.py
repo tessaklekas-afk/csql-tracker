@@ -41,6 +41,8 @@ class CSQL(db.Model):
     primary_product_opportunity = db.Column(db.String(255))
     contact_external_id = db.Column(db.String(255))
     contact_name = db.Column(db.String(255))
+    csm_name = db.Column(db.String(255))
+    csm_email = db.Column(db.String(255))
 
     # Status: pending | accepted | declined
     status = db.Column(db.String(20), nullable=False, default="pending")

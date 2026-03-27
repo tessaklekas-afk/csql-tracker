@@ -65,3 +65,23 @@ def get_contacts_for_account(account_cz_id, top=100):
     """Fetch contacts for an account by its internal ChurnZero ID."""
     data = _get("/Contact", filter_str=f"AccountId eq {account_cz_id}", top=top)
     return data.get("value", [])
+
+
+_user_cache = None
+
+def get_all_users():
+    """Fetch all ChurnZero users and return as a dict keyed by Id. Cached after first call."""
+    global _user_cache
+    if _user_cache is not None:
+        return _user_cache
+    users = []
+    url = f"{_rest_base()}/UserAccount"
+    while url:
+        resp = requests.get(url, headers=_headers(), timeout=15)
+        if not resp.ok:
+            break
+        data = resp.json()
+        users.extend(data.get("value", []))
+        url = data.get("@odata.nextLink")
+    _user_cache = {u["Id"]: {"name": u.get("Name", ""), "email": u.get("Email", "")} for u in users}
+    return _user_cache

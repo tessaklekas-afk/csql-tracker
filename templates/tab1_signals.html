@@ -124,17 +124,25 @@
               </div>
             </div>
 
+            {% set ad_id = cf.get('SalesAccountDirectorId') %}
+            {% set csm_id = acct.get('UserAccountId') %}
+            {% set ad = user_map.get(ad_id, {}) %}
+            {% set csm = user_map.get(csm_id, {}) %}
+            <input type="hidden" name="ad_email" value="{{ ad.get('email', '') }}">
+            <input type="hidden" name="csm_name" value="{{ csm.get('name', '') }}">
+            <input type="hidden" name="csm_email" value="{{ csm.get('email', '') }}">
+
             <!-- AD + Contact -->
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Assign to AD *</label>
-                <select name="ad_email" required
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-trm-500 focus:outline-none">
-                  <option value="">— Select AD —</option>
-                  {% for ad in ads %}
-                  <option value="{{ ad.email }}">{{ ad.name }}</option>
-                  {% endfor %}
-                </select>
+                <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Account Director</label>
+                <div class="w-full border border-gray-200 bg-gray-50 rounded-lg px-3 py-2 text-sm text-gray-700">
+                  {% if ad.get('name') %}
+                    {{ ad.get('name') }}<br><span class="text-xs text-gray-400">{{ ad.get('email', '') }}</span>
+                  {% else %}
+                    <span class="text-gray-400 italic">Not assigned in ChurnZero</span>
+                  {% endif %}
+                </div>
               </div>
               <div>
                 <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Contact (from ChurnZero)</label>
@@ -144,6 +152,18 @@
                   <option value="">Loading contacts...</option>
                 </select>
                 <input type="hidden" name="contact_name" id="contact-name-{{ loop.index }}">
+              </div>
+            </div>
+
+            <!-- CSM row -->
+            <div>
+              <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Deployment Strategist (CSM)</label>
+              <div class="w-full border border-gray-200 bg-gray-50 rounded-lg px-3 py-2 text-sm text-gray-700">
+                {% if csm.get('name') %}
+                  {{ csm.get('name') }}<br><span class="text-xs text-gray-400">{{ csm.get('email', '') }}</span>
+                {% else %}
+                  <span class="text-gray-400 italic">Not assigned in ChurnZero</span>
+                {% endif %}
               </div>
             </div>
 

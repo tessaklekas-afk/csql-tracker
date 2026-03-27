@@ -39,6 +39,9 @@
     <input type="hidden" name="account_api_utilization" id="f-api-util">
     <input type="hidden" name="account_contact_count" id="f-contacts">
     <input type="hidden" name="contact_name" id="f-contact-name">
+    <input type="hidden" name="ad_email" id="f-ad-email">
+    <input type="hidden" name="csm_name" id="f-csm-name">
+    <input type="hidden" name="csm_email" id="f-csm-email">
 
     <!-- Submitter -->
     <div class="grid grid-cols-2 gap-4">
@@ -57,14 +60,10 @@
     <!-- AD + Contact -->
     <div class="grid grid-cols-2 gap-4">
       <div>
-        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Assign to AD *</label>
-        <select name="ad_email" required
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-trm-500 focus:outline-none">
-          <option value="">— Select AD —</option>
-          {% for ad in ads %}
-          <option value="{{ ad.email }}">{{ ad.name }}</option>
-          {% endfor %}
-        </select>
+        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Account Director</label>
+        <div id="ad-display" class="w-full border border-gray-200 bg-gray-50 rounded-lg px-3 py-2 text-sm text-gray-400 italic">
+          Select an account first
+        </div>
       </div>
       <div>
         <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Contact (from ChurnZero)</label>
@@ -73,6 +72,14 @@
                 class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-trm-500 focus:outline-none">
           <option value="">— Select account first —</option>
         </select>
+      </div>
+    </div>
+
+    <!-- CSM row -->
+    <div>
+      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Deployment Strategist (CSM)</label>
+      <div id="csm-display" class="w-full border border-gray-200 bg-gray-50 rounded-lg px-3 py-2 text-sm text-gray-400 italic">
+        Select an account first
       </div>
     </div>
 
@@ -230,6 +237,25 @@
     document.getElementById('summary-next-arr').textContent = fmtCurrency(acct.next_renewal_amount);
     document.getElementById('summary-renewal').textContent = acct.renewal || '—';
     document.getElementById('summary-api').textContent = acct.api_utilization != null ? Math.round(acct.api_utilization) + '%' : '—';
+
+    // AD / CSM
+    document.getElementById('f-ad-email').value = acct.ad_email || '';
+    document.getElementById('f-csm-name').value = acct.csm_name || '';
+    document.getElementById('f-csm-email').value = acct.csm_email || '';
+    const adDisplay = document.getElementById('ad-display');
+    if (acct.ad_name) {
+      adDisplay.innerHTML = `<span class="text-gray-700">${acct.ad_name}</span><br><span class="text-xs text-gray-400">${acct.ad_email || ''}</span>`;
+      adDisplay.classList.remove('italic', 'text-gray-400');
+    } else {
+      adDisplay.innerHTML = '<span class="italic text-gray-400">Not assigned in ChurnZero</span>';
+    }
+    const csmDisplay = document.getElementById('csm-display');
+    if (acct.csm_name) {
+      csmDisplay.innerHTML = `<span class="text-gray-700">${acct.csm_name}</span><br><span class="text-xs text-gray-400">${acct.csm_email || ''}</span>`;
+      csmDisplay.classList.remove('italic', 'text-gray-400');
+    } else {
+      csmDisplay.innerHTML = '<span class="italic text-gray-400">Not assigned in ChurnZero</span>';
+    }
 
     summary.classList.remove('hidden');
     form.classList.remove('hidden');

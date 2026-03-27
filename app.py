@@ -44,17 +44,6 @@ def create_app():
     return app
 
 
-def get_ad_list():
-    raw = os.getenv("AD_LIST", "")
-    ads = []
-    for entry in raw.split(","):
-        entry = entry.strip()
-        if ":" in entry:
-            name, email = entry.split(":", 1)
-            ads.append({"name": name.strip(), "email": email.strip()})
-    return ads
-
-
 def register_routes(app):
 
     # ──────────────────────────────────────────────
@@ -63,11 +52,11 @@ def register_routes(app):
     @app.route("/")
     def index():
         tab = request.args.get("tab", "1")
-        ads = get_ad_list()
 
         accounts = []
         sfdc_opps = {}
         submitted_ids = set()
+        user_map = {}
         error = None
 
         csqls = []
@@ -76,12 +65,11 @@ def register_routes(app):
         if tab == "1":
             try:
                 import churnzero
+                user_map = churnzero.get_all_users()
                 accounts = churnzero.get_high_health_accounts(max_score=33, top=50)
-                # Bulk SFDC check
                 import sfdc
                 names = [a["Name"] for a in accounts]
                 sfdc_opps = sfdc.check_expansion_opps_bulk(names)
-                # Mark accounts already pending
                 pending = CSQL.query.filter_by(status="pending").all()
                 submitted_ids = {c.account_external_id for c in pending}
             except Exception as e:
@@ -97,8 +85,8 @@ def register_routes(app):
         return render_template(
             "index.html",
             tab=tab,
-            ads=ads,
             accounts=accounts,
+            user_map=user_map,
             sfdc_opps=sfdc_opps,
             submitted_ids=submitted_ids,
             error=error,
@@ -184,6 +172,8 @@ def register_routes(app):
             primary_product_opportunity=request.form.get("primary_product_opportunity", "").strip() or None,
             contact_external_id=request.form.get("contact_external_id", "").strip() or None,
             contact_name=request.form.get("contact_name", "").strip() or None,
+            csm_name=request.form.get("csm_name", "").strip() or None,
+            csm_email=request.form.get("csm_email", "").strip() or None,
         )
         db.session.add(csql)
         db.session.commit()
@@ -208,6 +198,7 @@ def register_routes(app):
         try:
             import churnzero
             accounts = churnzero.search_accounts_by_name(q, top=15)
+            user_map = churnzero.get_all_users()
             return jsonify([
                 {
                     "external_id": a.get("ExternalId", ""),
@@ -220,6 +211,10 @@ def register_routes(app):
                     "api_utilization": (a.get("Cf") or {}).get("ApisUsedThisContractYear"),
                     "renewal": a.get("NextRenewalDate", "")[:10] if a.get("NextRenewalDate") else "",
                     "contacts": a.get("ContactsCount"),
+                    "ad_name": user_map.get((a.get("Cf") or {}).get("SalesAccountDirectorId") or 0, {}).get("name", ""),
+                    "ad_email": user_map.get((a.get("Cf") or {}).get("SalesAccountDirectorId") or 0, {}).get("email", ""),
+                    "csm_name": user_map.get(a.get("UserAccountId") or 0, {}).get("name", ""),
+                    "csm_email": user_map.get(a.get("UserAccountId") or 0, {}).get("email", ""),
                 }
                 for a in accounts
             ])
