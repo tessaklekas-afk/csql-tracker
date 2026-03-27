@@ -1,0 +1,240 @@
+<div class="max-w-2xl">
+  <h2 class="text-xl font-bold text-gray-900 mb-1">Submit a CSQL</h2>
+  <p class="text-sm text-gray-500 mb-6">Search for an account, then fill in the details.</p>
+
+  <!-- Account search -->
+  <div class="mb-6 relative">
+    <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Search Account</label>
+    <input type="text" id="account-search" autocomplete="off"
+           placeholder="Type account name..."
+           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-trm-500 focus:outline-none">
+    <ul id="search-results"
+        class="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 hidden max-h-64 overflow-y-auto">
+    </ul>
+  </div>
+
+  <!-- Account summary (shown after selection) -->
+  <div id="account-summary" class="hidden mb-6 bg-trm-50 border border-trm-200 rounded-xl p-4">
+    <h3 class="font-semibold text-trm-800 mb-2" id="summary-name"></h3>
+    <div class="grid grid-cols-3 gap-2 text-sm text-trm-700">
+      <div><span class="font-medium">Health Score:</span> <span id="summary-score"></span></div>
+      <div><span class="font-medium">MAU:</span> <span id="summary-mau"></span></div>
+      <div><span class="font-medium">Contract:</span> <span id="summary-arr"></span></div>
+      <div><span class="font-medium">Next Contract:</span> <span id="summary-next-arr"></span></div>
+      <div><span class="font-medium">Renewal:</span> <span id="summary-renewal"></span></div>
+      <div><span class="font-medium">API Util:</span> <span id="summary-api"></span></div>
+    </div>
+  </div>
+
+  <!-- Submission form (shown after account selected) -->
+  <form id="submit-form" method="POST" action="/csql/submit" class="hidden space-y-4">
+    <input type="hidden" name="source_tab" value="2">
+    <input type="hidden" name="account_external_id" id="f-external-id">
+    <input type="hidden" name="account_name" id="f-name">
+    <input type="hidden" name="account_health_score" id="f-score">
+    <input type="hidden" name="account_mau" id="f-mau">
+    <input type="hidden" name="account_contract_value" id="f-contract">
+    <input type="hidden" name="account_renewal_date" id="f-renewal">
+    <input type="hidden" name="account_next_renewal_amount" id="f-next-arr">
+    <input type="hidden" name="account_api_utilization" id="f-api-util">
+    <input type="hidden" name="account_contact_count" id="f-contacts">
+    <input type="hidden" name="contact_name" id="f-contact-name">
+
+    <!-- Submitter -->
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Your Name *</label>
+        <input type="text" name="submitted_by_name" required
+               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-trm-500 focus:outline-none">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Your Email</label>
+        <input type="email" name="submitted_by_email"
+               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-trm-500 focus:outline-none">
+      </div>
+    </div>
+
+    <!-- AD + Contact -->
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Assign to AD *</label>
+        <select name="ad_email" required
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-trm-500 focus:outline-none">
+          <option value="">— Select AD —</option>
+          {% for ad in ads %}
+          <option value="{{ ad.email }}">{{ ad.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Contact (from ChurnZero)</label>
+        <select name="contact_external_id" id="contact-select"
+                onchange="document.getElementById('f-contact-name').value = this.options[this.selectedIndex].dataset.name || ''"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-trm-500 focus:outline-none">
+          <option value="">— Select account first —</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Expansion reason + primary product -->
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Expansion Reason</label>
+        <select name="expansion_reason"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-trm-500 focus:outline-none">
+          <option value="">— Select reason —</option>
+          <option>Scale / Volume Increase</option>
+          <option>Regulatory / Compliance Change</option>
+          <option>New Product Launch</option>
+          <option>Risk Exposure Increase</option>
+          <option>Use Case Expansion</option>
+          <option>Team Expansion</option>
+          <option>Training Driving Operational Demand</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Primary Product Opportunity</label>
+        <input type="text" name="primary_product_opportunity"
+               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-trm-500 focus:outline-none"
+               placeholder="e.g. API Calls, Wallet Screening">
+      </div>
+    </div>
+
+    <div>
+      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Expansion Signal</label>
+      <textarea name="expansion_signal" rows="2"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-trm-500 focus:outline-none"
+                placeholder="What signal or trigger led to this CSQL?"></textarea>
+    </div>
+
+    <!-- ARR + dates -->
+    <div class="grid grid-cols-3 gap-4">
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Suggested ARR ($)</label>
+        <input type="number" name="suggested_arr" min="0" step="1000"
+               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-trm-500 focus:outline-none"
+               placeholder="e.g. 50000">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Est. Expansion Date</label>
+        <input type="date" name="expansion_date"
+               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-trm-500 focus:outline-none">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Suggested Close Date</label>
+        <input type="date" name="suggested_close_date"
+               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-trm-500 focus:outline-none">
+      </div>
+    </div>
+
+    <div>
+      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Notes / Context</label>
+      <textarea name="notes" rows="3"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-trm-500 focus:outline-none"
+                placeholder="Any additional context for the AD..."></textarea>
+    </div>
+
+    <button type="submit"
+            class="w-full px-6 py-3 bg-trm-600 text-white font-semibold rounded-xl hover:bg-trm-700 transition-colors shadow-sm">
+      Submit CSQL &rarr;
+    </button>
+  </form>
+</div>
+
+<script>
+(function () {
+  const searchInput = document.getElementById('account-search');
+  const resultsList = document.getElementById('search-results');
+  const summary = document.getElementById('account-summary');
+  const form = document.getElementById('submit-form');
+  const contactSelect = document.getElementById('contact-select');
+  let debounceTimer;
+
+  function fmtCurrency(v) {
+    if (v == null) return '—';
+    if (v >= 1e6) return '$' + (v / 1e6).toFixed(1) + 'm';
+    return '$' + Math.round(v / 1000) + 'k';
+  }
+
+  searchInput.addEventListener('input', function () {
+    clearTimeout(debounceTimer);
+    const q = this.value.trim();
+    if (q.length < 2) { resultsList.classList.add('hidden'); return; }
+    debounceTimer = setTimeout(() => {
+      fetch('/api/account-search?q=' + encodeURIComponent(q))
+        .then(r => r.json())
+        .then(data => {
+          resultsList.innerHTML = '';
+          if (!data.length) {
+            resultsList.innerHTML = '<li class="px-4 py-2 text-sm text-gray-400">No results</li>';
+          } else {
+            data.forEach(acct => {
+              const li = document.createElement('li');
+              li.className = 'px-4 py-2 text-sm cursor-pointer hover:bg-trm-50 border-b border-gray-100 last:border-0';
+              li.innerHTML = `<span class="font-medium text-gray-900">${acct.name}</span>
+                <span class="ml-2 text-xs text-gray-400">Score: ${acct.score ?? '—'} | ${fmtCurrency(acct.arr)}</span>`;
+              li.addEventListener('click', () => selectAccount(acct));
+              resultsList.appendChild(li);
+            });
+          }
+          resultsList.classList.remove('hidden');
+        })
+        .catch(() => {});
+    }, 300);
+  });
+
+  document.addEventListener('click', e => {
+    if (!resultsList.contains(e.target) && e.target !== searchInput) {
+      resultsList.classList.add('hidden');
+    }
+  });
+
+  function loadContacts(czId) {
+    contactSelect.innerHTML = '<option value="">Loading...</option>';
+    fetch('/api/contacts/' + czId)
+      .then(r => r.json())
+      .then(contacts => {
+        contactSelect.innerHTML = '<option value="">— Select contact —</option>';
+        if (contacts.error || !Array.isArray(contacts)) return;
+        contacts.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.external_id;
+          opt.dataset.name = c.name;
+          opt.textContent = c.name + (c.title ? ' — ' + c.title : '') + (c.email ? ' <' + c.email + '>' : '');
+          contactSelect.appendChild(opt);
+        });
+      })
+      .catch(() => {
+        contactSelect.innerHTML = '<option value="">Could not load contacts</option>';
+      });
+  }
+
+  function selectAccount(acct) {
+    searchInput.value = acct.name;
+    resultsList.classList.add('hidden');
+
+    document.getElementById('f-external-id').value = acct.external_id || '';
+    document.getElementById('f-name').value = acct.name || '';
+    document.getElementById('f-score').value = acct.score ?? '';
+    document.getElementById('f-mau').value = acct.mau ?? '';
+    document.getElementById('f-contract').value = acct.arr ?? '';
+    document.getElementById('f-renewal').value = acct.renewal || '';
+    document.getElementById('f-next-arr').value = acct.next_renewal_amount ?? '';
+    document.getElementById('f-api-util').value = acct.api_utilization ?? '';
+    document.getElementById('f-contacts').value = acct.contacts ?? '';
+
+    document.getElementById('summary-name').textContent = acct.name;
+    document.getElementById('summary-score').textContent = acct.score ?? '—';
+    document.getElementById('summary-mau').textContent = acct.mau != null ? Math.round(acct.mau) : '—';
+    document.getElementById('summary-arr').textContent = fmtCurrency(acct.arr);
+    document.getElementById('summary-next-arr').textContent = fmtCurrency(acct.next_renewal_amount);
+    document.getElementById('summary-renewal').textContent = acct.renewal || '—';
+    document.getElementById('summary-api').textContent = acct.api_utilization != null ? Math.round(acct.api_utilization) + '%' : '—';
+
+    summary.classList.remove('hidden');
+    form.classList.remove('hidden');
+
+    if (acct.cz_id) loadContacts(acct.cz_id);
+  }
+})();
+</script>

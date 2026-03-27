@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-50">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}CSQL Tracker{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            trm: { 50:'#f0f4ff', 100:'#dbe4ff', 200:'#bac8ff', 400:'#748ffc',
+                   500:'#4c6ef5', 600:'#3b5bdb', 700:'#364fc7', 800:'#2b3f9e', 900:'#1e2f7a' }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="h-full">
+  <div class="min-h-full">
+    <nav class="bg-trm-700 shadow-lg">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="flex h-16 items-center justify-between">
+          <div class="flex items-center gap-8">
+            <a href="/" class="text-white font-bold text-lg tracking-tight">
+              CSQL Tracker
+            </a>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <main class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="mb-4 rounded-lg p-4 text-sm
+              {% if category == 'error' %}bg-red-50 text-red-700 border border-red-200
+              {% elif category == 'success' %}bg-green-50 text-green-700 border border-green-200
+              {% else %}bg-blue-50 text-blue-700 border border-blue-200{% endif %}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+  <style>
+    dialog { display: none; }
+    dialog[open] { display: block; }
+  </style>
+</body>
+</html>

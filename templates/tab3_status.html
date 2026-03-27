@@ -1,0 +1,151 @@
+<div class="flex items-center justify-between mb-4">
+  <div>
+    <h2 class="text-xl font-bold text-gray-900">CSQL Status</h2>
+    <p class="text-sm text-gray-500 mt-1">Track all submitted CSQLs and their pipeline outcomes. Click a row to see expansion details.</p>
+  </div>
+</div>
+
+<!-- Status filter pills -->
+<div class="flex gap-2 mb-5">
+  {% for label, val in [('All', ''), ('Pending', 'pending'), ('Accepted', 'accepted'), ('Declined', 'declined')] %}
+  <a href="/?tab=3{% if val %}&status={{ val }}{% endif %}"
+     class="px-3 py-1 rounded-full text-sm font-medium border transition-colors
+       {% if status_filter == val %}bg-trm-600 text-white border-trm-600{% else %}bg-white text-gray-600 border-gray-300 hover:border-trm-400{% endif %}">
+    {{ label }}
+  </a>
+  {% endfor %}
+</div>
+
+{% if not csqls %}
+  <div class="text-center py-16 text-gray-400">No CSQLs found.</div>
+{% else %}
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+  <table class="min-w-full text-sm">
+    <thead class="bg-gray-50 border-b border-gray-200">
+      <tr>
+        <th class="w-6 px-3 py-3"></th>
+        <th class="text-left px-4 py-3 font-semibold text-gray-600 whitespace-nowrap">Account</th>
+        <th class="text-left px-4 py-3 font-semibold text-gray-600 whitespace-nowrap">Submitted By</th>
+        <th class="text-center px-4 py-3 font-semibold text-gray-600 whitespace-nowrap">Date</th>
+        <th class="text-center px-4 py-3 font-semibold text-gray-600">Status</th>
+        <th class="text-left px-4 py-3 font-semibold text-gray-600 whitespace-nowrap">Expansion Reason</th>
+        <th class="text-right px-4 py-3 font-semibold text-gray-600 whitespace-nowrap">Suggested ARR</th>
+        <th class="text-center px-4 py-3 font-semibold text-gray-600 whitespace-nowrap">Est. Expansion</th>
+        <th class="text-left px-4 py-3 font-semibold text-gray-600">AD</th>
+        <th class="text-center px-4 py-3 font-semibold text-gray-600 whitespace-nowrap">Pipeline Created</th>
+        <th class="text-right px-4 py-3 font-semibold text-gray-600 whitespace-nowrap">Pipeline ARR</th>
+        <th class="text-center px-4 py-3 font-semibold text-gray-600 whitespace-nowrap">Pipeline Close</th>
+        <th class="text-center px-4 py-3 font-semibold text-gray-600 whitespace-nowrap">Expansion Opp</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in csqls %}
+      <!-- Main row -->
+      <tr class="border-t border-gray-100 hover:bg-gray-50 cursor-pointer"
+          onclick="toggleDetail('detail-{{ c.id }}', this)">
+        <td class="px-3 py-3 text-gray-400 text-center">
+          <span id="chevron-{{ c.id }}" class="inline-block transition-transform duration-150">&#8250;</span>
+        </td>
+        <td class="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">{{ c.account_name }}</td>
+        <td class="px-4 py-3 text-gray-600 whitespace-nowrap">{{ c.submitted_by_name }}</td>
+        <td class="px-4 py-3 text-center text-gray-500 whitespace-nowrap">
+          {{ c.submitted_at.strftime('%b %d, %Y') if c.submitted_at else '—' }}
+        </td>
+        <td class="px-4 py-3 text-center">
+          <span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold
+            {% if c.status == 'accepted' %}bg-green-100 text-green-700
+            {% elif c.status == 'declined' %}bg-red-100 text-red-700
+            {% else %}bg-amber-100 text-amber-700{% endif %}">
+            {{ c.status | capitalize }}
+          </span>
+        </td>
+        <td class="px-4 py-3 text-gray-600 whitespace-nowrap">{{ c.expansion_reason or '—' }}</td>
+        <td class="px-4 py-3 text-right text-gray-600">{{ c.suggested_arr | currency }}</td>
+        <td class="px-4 py-3 text-center text-gray-500 whitespace-nowrap">
+          {{ c.expansion_date.strftime('%b %d, %Y') if c.expansion_date else '—' }}
+        </td>
+        <td class="px-4 py-3 text-gray-600 text-xs whitespace-nowrap">{{ c.ad_email or '—' }}</td>
+        <td class="px-4 py-3 text-center">
+          {% if c.pipeline_created %}
+            <span class="text-green-600 font-bold">&#10003;</span>
+          {% else %}
+            <span class="text-gray-300">—</span>
+          {% endif %}
+        </td>
+        <td class="px-4 py-3 text-right text-gray-600">{{ c.pipeline_accepted_arr | currency }}</td>
+        <td class="px-4 py-3 text-center text-gray-500 whitespace-nowrap">
+          {{ c.pipeline_accepted_close_date.strftime('%b %d, %Y') if c.pipeline_accepted_close_date else '—' }}
+        </td>
+        <td class="px-4 py-3 text-center">
+          {% if c.expansion_opportunity_exists %}
+            <span class="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">Exists</span>
+          {% else %}
+            <span class="text-gray-300">—</span>
+          {% endif %}
+        </td>
+      </tr>
+
+      <!-- Expandable detail row -->
+      <tr id="detail-{{ c.id }}" class="hidden bg-trm-50 border-t border-trm-100">
+        <td></td>
+        <td colspan="12" class="px-6 py-4">
+          <div class="grid grid-cols-2 gap-x-10 gap-y-3 text-sm max-w-4xl">
+            <div>
+              <span class="text-xs font-semibold text-gray-500 uppercase">Contact</span>
+              <p class="text-gray-800 mt-0.5">{{ c.contact_name or '—' }}</p>
+            </div>
+            <div>
+              <span class="text-xs font-semibold text-gray-500 uppercase">Primary Product Opportunity</span>
+              <p class="text-gray-800 mt-0.5">{{ c.primary_product_opportunity or '—' }}</p>
+            </div>
+            <div>
+              <span class="text-xs font-semibold text-gray-500 uppercase">Suggested Close Date</span>
+              <p class="text-gray-800 mt-0.5">{{ c.suggested_close_date.strftime('%b %d, %Y') if c.suggested_close_date else '—' }}</p>
+            </div>
+            <div>
+              <span class="text-xs font-semibold text-gray-500 uppercase">Submitted By Email</span>
+              <p class="text-gray-800 mt-0.5">{{ c.submitted_by_email or '—' }}</p>
+            </div>
+            {% if c.expansion_signal %}
+            <div class="col-span-2">
+              <span class="text-xs font-semibold text-gray-500 uppercase">Expansion Signal</span>
+              <p class="text-gray-800 mt-0.5 whitespace-pre-wrap">{{ c.expansion_signal }}</p>
+            </div>
+            {% endif %}
+            {% if c.notes %}
+            <div class="col-span-2">
+              <span class="text-xs font-semibold text-gray-500 uppercase">Notes</span>
+              <p class="text-gray-800 mt-0.5 whitespace-pre-wrap">{{ c.notes }}</p>
+            </div>
+            {% endif %}
+            {% if c.status == 'declined' and c.ad_response_notes %}
+            <div class="col-span-2">
+              <span class="text-xs font-semibold text-red-500 uppercase">Decline Reason</span>
+              <p class="text-red-700 mt-0.5">{{ c.ad_response_notes }}</p>
+            </div>
+            {% endif %}
+            {% if c.expansion_opportunity_id %}
+            <div>
+              <span class="text-xs font-semibold text-gray-500 uppercase">SFDC Opp ID</span>
+              <p class="text-gray-800 mt-0.5 font-mono text-xs">{{ c.expansion_opportunity_id }}</p>
+            </div>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<script>
+function toggleDetail(id, row) {
+  const detail = document.getElementById(id);
+  const csqlId = id.replace('detail-', '');
+  const chevron = document.getElementById('chevron-' + csqlId);
+  const isHidden = detail.classList.contains('hidden');
+  detail.classList.toggle('hidden');
+  chevron.style.transform = isHidden ? 'rotate(90deg)' : '';
+}
+</script>

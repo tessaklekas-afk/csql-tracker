@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-50">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Review CSQL — {{ csql.account_name }}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: {
+        trm: { 50:'#f0f4ff', 100:'#dbe4ff', 600:'#3b5bdb', 700:'#364fc7', 800:'#2b3f9e' }
+      }}}
+    }
+  </script>
+</head>
+<body class="h-full">
+  <div class="min-h-full flex items-center justify-center px-4 py-12">
+    <div class="max-w-lg w-full">
+
+      <!-- Header -->
+      <div class="text-center mb-8">
+        <div class="w-16 h-16 bg-trm-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <span class="text-2xl">&#128640;</span>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">CSQL Review</h1>
+        <p class="mt-2 text-gray-600">
+          <strong>{{ csql.submitted_by_name }}</strong> submitted a CSQL for
+          <strong>{{ csql.account_name }}</strong>
+        </p>
+      </div>
+
+      <!-- Expansion signal banner -->
+      {% if csql.expansion_reason %}
+      <div class="bg-trm-50 border border-trm-200 rounded-xl px-5 py-3 mb-4 flex items-center gap-3">
+        <span class="text-trm-600 text-lg">&#128200;</span>
+        <div>
+          <p class="text-xs font-semibold text-trm-500 uppercase">Expansion Reason</p>
+          <p class="font-semibold text-trm-800">{{ csql.expansion_reason }}</p>
+        </div>
+        {% if csql.primary_product_opportunity %}
+        <div class="ml-6 pl-6 border-l border-trm-200">
+          <p class="text-xs font-semibold text-trm-500 uppercase">Primary Product</p>
+          <p class="font-semibold text-trm-800">{{ csql.primary_product_opportunity }}</p>
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <!-- Account details card -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6 space-y-4">
+
+        <!-- Account metrics -->
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Health Score</p>
+            <p class="font-medium text-gray-900">
+              {{ csql.account_health_score | int if csql.account_health_score is not none else '—' }}
+            </p>
+          </div>
+          <div>
+            <p class="text-xs font-semibold text-gray-500 uppercase mb-1">MAU</p>
+            <p class="font-medium text-gray-900">
+              {{ csql.account_mau | int if csql.account_mau is not none else '—' }}
+            </p>
+          </div>
+          <div>
+            <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Contract Value</p>
+            <p class="font-medium text-gray-900">
+              {% if csql.account_contract_value %}
+                {% set v = csql.account_contract_value %}
+                {% if v >= 1000000 %}${{ "%.1f"|format(v/1000000) }}m{% else %}${{ "%.0f"|format(v/1000) }}k{% endif %}
+              {% else %}—{% endif %}
+            </p>
+          </div>
+          <div>
+            <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Next Contract</p>
+            <p class="font-medium text-gray-900">
+              {% if csql.account_next_renewal_amount %}
+                {% set v = csql.account_next_renewal_amount %}
+                {% if v >= 1000000 %}${{ "%.1f"|format(v/1000000) }}m{% else %}${{ "%.0f"|format(v/1000) }}k{% endif %}
+              {% else %}—{% endif %}
+            </p>
+          </div>
+          <div>
+            <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Renewal Date</p>
+            <p class="font-medium text-gray-900">
+              {{ csql.account_renewal_date[:10] if csql.account_renewal_date else '—' }}
+            </p>
+          </div>
+          <div>
+            <p class="text-xs font-semibold text-gray-500 uppercase mb-1">API Utilization</p>
+            <p class="font-medium text-gray-900">
+              {{ "%.0f"|format(csql.account_api_utilization) ~ "%" if csql.account_api_utilization is not none else '—' }}
+            </p>
+          </div>
+        </div>
+
+        <!-- CSQL signal details -->
+        {% if csql.contact_name or csql.expansion_signal or csql.expansion_date %}
+        <hr class="border-gray-200">
+        <div class="grid grid-cols-2 gap-4">
+          {% if csql.contact_name %}
+          <div>
+            <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Key Contact</p>
+            <p class="font-medium text-gray-900">{{ csql.contact_name }}</p>
+          </div>
+          {% endif %}
+          {% if csql.expansion_date %}
+          <div>
+            <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Est. Expansion Date</p>
+            <p class="font-medium text-gray-900">{{ csql.expansion_date.strftime('%b %d, %Y') }}</p>
+          </div>
+          {% endif %}
+          {% if csql.expansion_signal %}
+          <div class="col-span-2">
+            <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Expansion Signal</p>
+            <p class="text-gray-800 whitespace-pre-wrap">{{ csql.expansion_signal }}</p>
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- CSM recommendation -->
+        {% if csql.suggested_arr or csql.suggested_close_date %}
+        <hr class="border-gray-200">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Suggested ARR</p>
+            <p class="font-medium text-gray-900">
+              {% if csql.suggested_arr %}
+                {% set v = csql.suggested_arr %}
+                {% if v >= 1000000 %}${{ "%.1f"|format(v/1000000) }}m{% else %}${{ "%.0f"|format(v/1000) }}k{% endif %}
+              {% else %}—{% endif %}
+            </p>
+          </div>
+          <div>
+            <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Suggested Close</p>
+            <p class="font-medium text-gray-900">
+              {{ csql.suggested_close_date.strftime('%b %d, %Y') if csql.suggested_close_date else '—' }}
+            </p>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if csql.notes %}
+        <hr class="border-gray-200">
+        <div>
+          <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Notes</p>
+          <p class="text-gray-800 whitespace-pre-wrap">{{ csql.notes }}</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Actions -->
+      {% if csql.status == 'pending' %}
+      <div class="space-y-3">
+
+        <!-- Accept -->
+        <details class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <summary class="px-5 py-4 cursor-pointer font-semibold text-green-700 hover:bg-green-50 select-none list-none flex items-center gap-2">
+            <span>&#9989;</span> Accept — create pipeline
+          </summary>
+          <form method="POST" action="/csql/action/{{ csql.magic_token }}/accept" class="px-5 py-4 border-t border-gray-100 space-y-3">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Confirmed ARR ($)</label>
+                <input type="number" name="confirmed_arr" min="0" step="1000"
+                       value="{{ csql.suggested_arr | int if csql.suggested_arr else '' }}"
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Confirmed Close Date</label>
+                <input type="date" name="confirmed_close_date"
+                       value="{{ csql.suggested_close_date.strftime('%Y-%m-%d') if csql.suggested_close_date else '' }}"
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400">
+              </div>
+            </div>
+            <button type="submit"
+                    class="w-full py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition-colors">
+              Confirm Accept
+            </button>
+          </form>
+        </details>
+
+        <!-- Expansion opp exists -->
+        <details class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <summary class="px-5 py-4 cursor-pointer font-semibold text-orange-700 hover:bg-orange-50 select-none list-none flex items-center gap-2">
+            <span>&#128279;</span> Expansion opportunity already in Salesforce
+          </summary>
+          <form method="POST" action="/csql/action/{{ csql.magic_token }}/opp-exists" class="px-5 py-4 border-t border-gray-100 space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">SFDC Opportunity ID (optional)</label>
+              <input type="text" name="sfdc_opp_id" placeholder="0065x000..."
+                     class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+            </div>
+            <button type="submit"
+                    class="w-full py-3 bg-orange-500 text-white font-semibold rounded-xl hover:bg-orange-600 transition-colors">
+              Mark Expansion Opp Exists
+            </button>
+          </form>
+        </details>
+
+        <!-- Decline -->
+        <details class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <summary class="px-5 py-4 cursor-pointer font-semibold text-red-600 hover:bg-red-50 select-none list-none flex items-center gap-2">
+            <span>&#10060;</span> Decline
+          </summary>
+          <form method="POST" action="/csql/action/{{ csql.magic_token }}/decline" class="px-5 py-4 border-t border-gray-100 space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Reason (optional)</label>
+              <textarea name="reason" rows="2" placeholder="Brief reason for the submitter..."
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"></textarea>
+            </div>
+            <button type="submit"
+                    class="w-full py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition-colors">
+              Confirm Decline
+            </button>
+          </form>
+        </details>
+
+      </div>
+
+      {% elif csql.status == 'accepted' %}
+      <div class="bg-green-50 border border-green-200 rounded-xl p-6 text-center">
+        <p class="text-green-700 font-semibold text-lg">&#9989; CSQL Accepted</p>
+        {% if csql.expansion_opportunity_exists %}
+          <p class="text-green-600 mt-1 text-sm">Expansion opportunity already exists in Salesforce.</p>
+          {% if csql.expansion_opportunity_id %}
+            <p class="text-green-600 mt-1 text-sm">Opp ID: {{ csql.expansion_opportunity_id }}</p>
+          {% endif %}
+        {% else %}
+          {% if csql.pipeline_accepted_arr %}
+            <p class="text-green-600 mt-1 text-sm">
+              Pipeline ARR:
+              {% set v = csql.pipeline_accepted_arr %}
+              {% if v >= 1000000 %}${{ "%.1f"|format(v/1000000) }}m{% else %}${{ "%.0f"|format(v/1000) }}k{% endif %}
+              {% if csql.pipeline_accepted_close_date %}
+                &bull; Close: {{ csql.pipeline_accepted_close_date.strftime('%b %d, %Y') }}
+              {% endif %}
+            </p>
+          {% endif %}
+        {% endif %}
+      </div>
+
+      {% elif csql.status == 'declined' %}
+      <div class="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+        <p class="text-red-700 font-semibold text-lg">&#10060; CSQL Declined</p>
+        {% if csql.ad_response_notes %}
+          <p class="text-red-600 mt-2 text-sm">{{ csql.ad_response_notes }}</p>
+        {% endif %}
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</body>
+</html>

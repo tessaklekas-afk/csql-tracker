@@ -1,0 +1,265 @@
+<div class="flex items-center justify-between mb-4">
+  <div>
+    <h2 class="text-xl font-bold text-gray-900">Potential CSQLs</h2>
+    <p class="text-sm text-gray-500 mt-1">Active accounts with ChurnScore &ge; 70 — healthy customers with expansion potential.</p>
+  </div>
+</div>
+
+{% if error %}
+  <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm mb-4">
+    Could not load ChurnZero data: {{ error }}
+  </div>
+{% endif %}
+
+{% if not accounts and not error %}
+  <div class="text-center py-16 text-gray-400">No accounts found with health score &ge; 70.</div>
+{% endif %}
+
+{% if accounts %}
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+  <table class="min-w-full text-sm">
+    <thead class="bg-gray-50 border-b border-gray-200">
+      <tr>
+        <th class="text-left px-4 py-3 font-semibold text-gray-600 whitespace-nowrap">Account</th>
+        <th class="text-center px-4 py-3 font-semibold text-gray-600">Health</th>
+        <th class="text-center px-4 py-3 font-semibold text-gray-600">MAU</th>
+        <th class="text-right px-4 py-3 font-semibold text-gray-600 whitespace-nowrap">Contract Value</th>
+        <th class="text-center px-4 py-3 font-semibold text-gray-600 whitespace-nowrap">Renewal Date</th>
+        <th class="text-right px-4 py-3 font-semibold text-gray-600 whitespace-nowrap">Next Contract</th>
+        <th class="text-center px-4 py-3 font-semibold text-gray-600 whitespace-nowrap">API Util.</th>
+        <th class="text-center px-4 py-3 font-semibold text-gray-600 whitespace-nowrap">SFDC Opp?</th>
+        <th class="text-center px-4 py-3 font-semibold text-gray-600">Action</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for acct in accounts %}
+      {% set ext_id = acct.get('ExternalId', '') %}
+      {% set cz_id = acct.get('Id', '') %}
+      {% set cf = acct.get('Cf') or {} %}
+      {% set score = acct.get('PrimaryChurnScoreValue') %}
+      {% set mau = cf.get('MonthlyActiveUserCount') %}
+      {% set renewal = acct.get('NextRenewalDate', '')[:10] if acct.get('NextRenewalDate') else '—' %}
+      {% set next_amt = cf.get('NextRenewalAmount') %}
+      {% set api_util = cf.get('ApisUsedThisContractYear') %}
+      {% set sfdc_opp = sfdc_opps.get(acct.get('Name', '')) %}
+      {% set already_submitted = ext_id in submitted_ids %}
+      <tr class="hover:bg-gray-50">
+        <td class="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">{{ acct.get('Name', '—') }}</td>
+        <td class="px-4 py-3 text-center">
+          {% if score is not none %}
+            <span class="inline-block px-2 py-0.5 rounded-full text-xs font-bold
+              {% if score >= 85 %}bg-green-100 text-green-700
+              {% else %}bg-yellow-100 text-yellow-700{% endif %}">
+              {{ score | int }}
+            </span>
+          {% else %}—{% endif %}
+        </td>
+        <td class="px-4 py-3 text-center text-gray-600">{{ mau | int if mau is not none else '—' }}</td>
+        <td class="px-4 py-3 text-right text-gray-600">{{ acct.get('TotalContractAmount') | currency }}</td>
+        <td class="px-4 py-3 text-center text-gray-600 whitespace-nowrap">{{ renewal }}</td>
+        <td class="px-4 py-3 text-right text-gray-600">{{ next_amt | currency }}</td>
+        <td class="px-4 py-3 text-center">
+          {% if api_util is not none %}
+            <span class="text-sm font-medium
+              {% if api_util >= 80 %}text-green-600
+              {% elif api_util >= 50 %}text-yellow-600
+              {% else %}text-gray-500{% endif %}">
+              {{ "%.0f"|format(api_util) }}%
+            </span>
+          {% else %}<span class="text-gray-400">—</span>{% endif %}
+        </td>
+        <td class="px-4 py-3 text-center">
+          {% if sfdc_opp %}
+            <span class="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">Opp Exists</span>
+          {% else %}
+            <span class="text-gray-400">—</span>
+          {% endif %}
+        </td>
+        <td class="px-4 py-3 text-center">
+          {% if already_submitted %}
+            <span class="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Pending</span>
+          {% else %}
+            <button onclick="openModal('modal-{{ loop.index }}', '{{ cz_id }}')"
+                    class="px-3 py-1 bg-trm-600 text-white text-xs font-medium rounded-lg hover:bg-trm-700 transition-colors whitespace-nowrap">
+              Submit CSQL
+            </button>
+          {% endif %}
+        </td>
+      </tr>
+
+      <!-- Submit modal for this account -->
+      {% if not already_submitted %}
+      <dialog id="modal-{{ loop.index }}"
+              class="rounded-2xl shadow-2xl border border-gray-200 p-0 w-full max-w-2xl backdrop:bg-black/40">
+        <div class="bg-white rounded-2xl max-h-[90vh] flex flex-col">
+          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
+            <h3 class="font-bold text-gray-900">Submit CSQL — {{ acct.get('Name') }}</h3>
+            <button type="button" onclick="document.getElementById('modal-{{ loop.index }}').close()"
+                    class="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+          </div>
+          <div class="overflow-y-auto">
+          <form method="POST" action="/csql/submit" class="px-6 py-5 space-y-4">
+            <input type="hidden" name="source_tab" value="1">
+            <input type="hidden" name="account_external_id" value="{{ ext_id }}">
+            <input type="hidden" name="account_name" value="{{ acct.get('Name', '') }}">
+            <input type="hidden" name="account_health_score" value="{{ score or '' }}">
+            <input type="hidden" name="account_mau" value="{{ mau or '' }}">
+            <input type="hidden" name="account_contract_value" value="{{ acct.get('TotalContractAmount') or '' }}">
+            <input type="hidden" name="account_renewal_date" value="{{ acct.get('NextRenewalDate', '') }}">
+            <input type="hidden" name="account_next_renewal_amount" value="{{ next_amt or '' }}">
+            <input type="hidden" name="account_api_utilization" value="{{ api_util or '' }}">
+            <input type="hidden" name="account_contact_count" value="{{ acct.get('ContactsCount') or '' }}">
+
+            <!-- Submitter -->
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Your Name *</label>
+                <input type="text" name="submitted_by_name" required
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-trm-500 focus:outline-none">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Your Email</label>
+                <input type="email" name="submitted_by_email"
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-trm-500 focus:outline-none">
+              </div>
+            </div>
+
+            <!-- AD + Contact -->
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Assign to AD *</label>
+                <select name="ad_email" required
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-trm-500 focus:outline-none">
+                  <option value="">— Select AD —</option>
+                  {% for ad in ads %}
+                  <option value="{{ ad.email }}">{{ ad.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Contact (from ChurnZero)</label>
+                <select name="contact_external_id" id="contact-select-{{ loop.index }}"
+                        onchange="setContactName(this, 'contact-name-{{ loop.index }}')"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-trm-500 focus:outline-none">
+                  <option value="">Loading contacts...</option>
+                </select>
+                <input type="hidden" name="contact_name" id="contact-name-{{ loop.index }}">
+              </div>
+            </div>
+
+            <!-- Expansion reason + signal -->
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Expansion Reason</label>
+                <select name="expansion_reason"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-trm-500 focus:outline-none">
+                  <option value="">— Select reason —</option>
+                  <option>Scale / Volume Increase</option>
+                  <option>Regulatory / Compliance Change</option>
+                  <option>New Product Launch</option>
+                  <option>Risk Exposure Increase</option>
+                  <option>Use Case Expansion</option>
+                  <option>Team Expansion</option>
+                  <option>Training Driving Operational Demand</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Primary Product Opportunity</label>
+                <input type="text" name="primary_product_opportunity"
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-trm-500 focus:outline-none"
+                       placeholder="e.g. API Calls, Wallet Screening">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Expansion Signal</label>
+              <textarea name="expansion_signal" rows="2"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-trm-500 focus:outline-none"
+                        placeholder="What signal or trigger led to this CSQL?"></textarea>
+            </div>
+
+            <!-- ARR + Dates -->
+            <div class="grid grid-cols-3 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Suggested ARR ($)</label>
+                <input type="number" name="suggested_arr" min="0" step="1000"
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-trm-500 focus:outline-none"
+                       placeholder="e.g. 50000">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Est. Expansion Date</label>
+                <input type="date" name="expansion_date"
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-trm-500 focus:outline-none">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Suggested Close Date</label>
+                <input type="date" name="suggested_close_date"
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-trm-500 focus:outline-none">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Notes / Context</label>
+              <textarea name="notes" rows="2"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-trm-500 focus:outline-none"
+                        placeholder="Any additional context for the AD..."></textarea>
+            </div>
+
+            <div class="flex gap-3 pt-2">
+              <button type="submit"
+                      class="flex-1 px-4 py-2 bg-trm-600 text-white font-semibold rounded-lg hover:bg-trm-700 transition-colors">
+                Submit CSQL
+              </button>
+              <button type="button" onclick="document.getElementById('modal-{{ loop.index }}').close()"
+                      class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                Cancel
+              </button>
+            </div>
+          </form>
+          </div>
+        </div>
+      </dialog>
+      {% endif %}
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<script>
+function setContactName(selectEl, hiddenId) {
+  const opt = selectEl.options[selectEl.selectedIndex];
+  document.getElementById(hiddenId).value = opt.dataset.name || '';
+}
+
+function openModal(modalId, czId) {
+  const dialog = document.getElementById(modalId);
+  dialog.showModal();
+
+  // Derive the contact select id from the modal id (modal-N → contact-select-N)
+  const idx = modalId.replace('modal-', '');
+  const contactSelect = document.getElementById('contact-select-' + idx);
+  if (!czId || contactSelect.dataset.loaded) return;
+
+  fetch('/api/contacts/' + czId)
+    .then(r => r.json())
+    .then(contacts => {
+      contactSelect.innerHTML = '<option value="">— Select contact —</option>';
+      if (contacts.error) {
+        contactSelect.innerHTML = '<option value="">Could not load contacts</option>';
+        return;
+      }
+      contacts.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.external_id;
+        opt.dataset.name = c.name;
+        opt.textContent = c.name + (c.title ? ' — ' + c.title : '') + (c.email ? ' <' + c.email + '>' : '');
+        contactSelect.appendChild(opt);
+      });
+      contactSelect.dataset.loaded = '1';
+    })
+    .catch(() => {
+      contactSelect.innerHTML = '<option value="">Could not load contacts</option>';
+    });
+}
+</script>

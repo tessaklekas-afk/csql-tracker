@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}CSQL Tracker{% endblock %}
+{% block content %}
+
+<!-- Tab pills -->
+<div class="flex gap-1 border-b border-gray-200 mb-6">
+  <a href="/?tab=1"
+     class="px-4 py-2 text-sm font-medium rounded-t-lg border border-b-0
+       {% if tab == '1' %}bg-white text-trm-700 border-gray-200{% else %}text-gray-500 border-transparent hover:text-gray-700{% endif %}">
+    Potential CSQLs
+  </a>
+  <a href="/?tab=2"
+     class="px-4 py-2 text-sm font-medium rounded-t-lg border border-b-0
+       {% if tab == '2' %}bg-white text-trm-700 border-gray-200{% else %}text-gray-500 border-transparent hover:text-gray-700{% endif %}">
+    Submit CSQL
+  </a>
+  <a href="/?tab=3"
+     class="px-4 py-2 text-sm font-medium rounded-t-lg border border-b-0
+       {% if tab == '3' %}bg-white text-trm-700 border-gray-200{% else %}text-gray-500 border-transparent hover:text-gray-700{% endif %}">
+    CSQL Status
+  </a>
+</div>
+
+{% if tab == '1' %}
+  {% include 'tab1_signals.html' %}
+{% elif tab == '2' %}
+  {% include 'tab2_manual.html' %}
+{% else %}
+  {% include 'tab3_status.html' %}
+{% endif %}
+
+{% endblock %}
