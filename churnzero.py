@@ -31,10 +31,10 @@ def _get(endpoint, filter_str=None, top=50):
 
 
 def get_high_health_accounts(min_score=70, top=50):
-    """Return active accounts with health score >= min_score, sorted by score desc."""
+    """Return active accounts on the composite score model (ID 21) with score >= min_score."""
     data = _get(
         "/Account",
-        filter_str=f"PrimaryChurnScoreValue ge {min_score} and IsActive eq true",
+        filter_str=f"PrimaryChurnScoreValue ge {min_score} and IsActive eq true and PrimaryChurnScoreId eq 21",
         top=top,
     )
     accounts = data.get("value", [])
