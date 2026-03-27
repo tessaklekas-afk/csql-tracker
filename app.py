@@ -76,7 +76,7 @@ def register_routes(app):
         if tab == "1":
             try:
                 import churnzero
-                accounts = churnzero.get_high_health_accounts(min_score=70, top=50)
+                accounts = churnzero.get_high_health_accounts(max_score=33, top=50)
                 # Bulk SFDC check
                 import sfdc
                 names = [a["Name"] for a in accounts]
