@@ -2,6 +2,7 @@ import os
 
 import requests
 
+
 def _send(payload: dict) -> bool:
     _WEBHOOK = os.getenv("SLACK_WEBHOOK_URL", "")
     if not _WEBHOOK:
@@ -24,47 +25,72 @@ def _fmt_currency(value):
 
 
 def send_csql_notification(csql, magic_link: str) -> bool:
-    score = csql.account_health_score
-    score_str = f"{score:.0f}" if score is not None else "—"
-    mau = csql.account_mau
-    mau_str = f"{mau:.0f}" if mau is not None else "—"
-    arr_str = _fmt_currency(csql.suggested_arr)
+    score_str = f"{csql.account_health_score:.0f}" if csql.account_health_score is not None else "—"
+    mau_str = f"{csql.account_mau:.0f}" if csql.account_mau is not None else "—"
     renewal = csql.account_renewal_date[:10] if csql.account_renewal_date else "—"
-    notes = csql.notes or "No notes provided."
 
-    payload = {
-        "blocks": [
+    # Build header line
+    header = f":rocket: *New CSQL: {csql.account_name}*\nSubmitted by *{csql.submitted_by_name}*"
+    if csql.expansion_reason:
+        header += f"  ·  {csql.expansion_reason}"
+
+    blocks = [
+        {
+            "type": "section",
+            "text": {"type": "mrkdwn", "text": header},
+        },
+        {
+            "type": "section",
+            "fields": [
+                {"type": "mrkdwn", "text": f"*Health Score:*\n{score_str}"},
+                {"type": "mrkdwn", "text": f"*MAU:*\n{mau_str}"},
+                {"type": "mrkdwn", "text": f"*Contract Value:*\n{_fmt_currency(csql.account_contract_value)}"},
+                {"type": "mrkdwn", "text": f"*Next Contract:*\n{_fmt_currency(csql.account_next_renewal_amount)}"},
+                {"type": "mrkdwn", "text": f"*Renewal Date:*\n{renewal}"},
+                {"type": "mrkdwn", "text": f"*Suggested ARR:*\n{_fmt_currency(csql.suggested_arr)}"},
+            ],
+        },
+    ]
+
+    # Expansion signal
+    if csql.expansion_signal:
+        blocks.append({
+            "type": "section",
+            "text": {"type": "mrkdwn", "text": f"*Expansion Signal:*\n{csql.expansion_signal}"},
+        })
+
+    # Contact + CSM
+    contact_parts = []
+    if csql.contact_name:
+        contact_parts.append(f"*Key Contact:* {csql.contact_name}")
+    if csql.csm_name:
+        contact_parts.append(f"*Deployment Strategist:* {csql.csm_name}")
+    if csql.primary_product_opportunity:
+        contact_parts.append(f"*Primary Product:* {csql.primary_product_opportunity}")
+    if contact_parts:
+        blocks.append({
+            "type": "section",
+            "text": {"type": "mrkdwn", "text": "  ·  ".join(contact_parts)},
+        })
+
+    # Notes
+    if csql.notes:
+        blocks.append({
+            "type": "section",
+            "text": {"type": "mrkdwn", "text": f"*Notes from CSM:*\n{csql.notes}"},
+        })
+
+    blocks.append({"type": "divider"})
+    blocks.append({
+        "type": "actions",
+        "elements": [
             {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f":rocket: *New CSQL: {csql.account_name}*\nSubmitted by *{csql.submitted_by_name}*",
-                },
-            },
-            {
-                "type": "section",
-                "fields": [
-                    {"type": "mrkdwn", "text": f"*Health Score:*\n{score_str}"},
-                    {"type": "mrkdwn", "text": f"*MAU:*\n{mau_str}"},
-                    {"type": "mrkdwn", "text": f"*Suggested ARR:*\n{arr_str}"},
-                    {"type": "mrkdwn", "text": f"*Renewal Date:*\n{renewal}"},
-                ],
-            },
-            {
-                "type": "section",
-                "text": {"type": "mrkdwn", "text": f"*Notes:*\n{notes}"},
-            },
-            {
-                "type": "actions",
-                "elements": [
-                    {
-                        "type": "button",
-                        "text": {"type": "plain_text", "text": "Review CSQL \u2192"},
-                        "url": magic_link,
-                        "style": "primary",
-                    }
-                ],
-            },
-        ]
-    }
-    return _send(payload)
+                "type": "button",
+                "text": {"type": "plain_text", "text": "Review CSQL \u2192"},
+                "url": magic_link,
+                "style": "primary",
+            }
+        ],
+    })
+
+    return _send({"blocks": blocks})

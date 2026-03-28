@@ -155,11 +155,16 @@
       {% if csql.status == 'pending' %}
       <div class="space-y-3">
 
+        <p class="text-xs text-gray-500 text-center px-2">Choose one of the actions below. The CSM will be able to see your response in the CSQL tracker.</p>
+
         <!-- Accept -->
-        <details class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <details class="bg-white rounded-xl border border-green-200 shadow-sm overflow-hidden">
           <summary class="px-5 py-4 cursor-pointer font-semibold text-green-700 hover:bg-green-50 select-none list-none flex items-center gap-2">
-            <span>&#9989;</span> Accept — create pipeline
+            <span>&#9989;</span> Accept &mdash; I'll create an opportunity in Salesforce
           </summary>
+          <div class="px-5 pt-3 pb-1 bg-green-50 border-t border-green-100">
+            <p class="text-xs text-green-700">No expansion opportunity exists yet. By accepting, you're committing to create one in Salesforce. Confirm the ARR and close date below.</p>
+          </div>
           <form method="POST" action="/csql/action/{{ csql.magic_token }}/accept" class="px-5 py-4 border-t border-gray-100 space-y-3">
             <div class="grid grid-cols-2 gap-3">
               <div>
@@ -177,16 +182,19 @@
             </div>
             <button type="submit"
                     class="w-full py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition-colors">
-              Confirm Accept
+              Accept &amp; Create Opportunity
             </button>
           </form>
         </details>
 
         <!-- Expansion opp exists -->
-        <details class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <details class="bg-white rounded-xl border border-orange-200 shadow-sm overflow-hidden">
           <summary class="px-5 py-4 cursor-pointer font-semibold text-orange-700 hover:bg-orange-50 select-none list-none flex items-center gap-2">
-            <span>&#128279;</span> Expansion opportunity already in Salesforce
+            <span>&#128279;</span> Expansion opportunity already exists in Salesforce
           </summary>
+          <div class="px-5 pt-3 pb-1 bg-orange-50 border-t border-orange-100">
+            <p class="text-xs text-orange-700">Use this if an expansion opportunity already exists in Salesforce. The CSM has flagged new information that may be relevant — please review and update the opportunity as needed.</p>
+          </div>
           <form method="POST" action="/csql/action/{{ csql.magic_token }}/opp-exists" class="px-5 py-4 border-t border-gray-100 space-y-3">
             <div>
               <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">SFDC Opportunity ID (optional)</label>
@@ -195,20 +203,23 @@
             </div>
             <button type="submit"
                     class="w-full py-3 bg-orange-500 text-white font-semibold rounded-xl hover:bg-orange-600 transition-colors">
-              Mark Expansion Opp Exists
+              Mark Opp Exists
             </button>
           </form>
         </details>
 
         <!-- Decline -->
-        <details class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <details class="bg-white rounded-xl border border-red-200 shadow-sm overflow-hidden">
           <summary class="px-5 py-4 cursor-pointer font-semibold text-red-600 hover:bg-red-50 select-none list-none flex items-center gap-2">
             <span>&#10060;</span> Decline
           </summary>
+          <div class="px-5 pt-3 pb-1 bg-red-50 border-t border-red-100">
+            <p class="text-xs text-red-700">Use this if you don't believe this is a valid expansion opportunity right now. Please leave a reason so the CSM understands your decision.</p>
+          </div>
           <form method="POST" action="/csql/action/{{ csql.magic_token }}/decline" class="px-5 py-4 border-t border-gray-100 space-y-3">
             <div>
-              <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Reason (optional)</label>
-              <textarea name="reason" rows="2" placeholder="Brief reason for the submitter..."
+              <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Reason</label>
+              <textarea name="reason" rows="2" placeholder="Brief reason for the CSM..."
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"></textarea>
             </div>
             <button type="submit"
