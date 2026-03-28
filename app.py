@@ -10,6 +10,28 @@ from flask import Flask, flash, jsonify, redirect, render_template, request, url
 from models import CSQL, db
 
 
+def _migrate(db):
+    """Add any missing columns to existing tables."""
+    cols_to_add = [
+        ("csm_name", "VARCHAR(255)"),
+        ("csm_email", "VARCHAR(255)"),
+        ("account_next_renewal_amount", "FLOAT"),
+        ("account_api_utilization", "FLOAT"),
+        ("expansion_reason", "VARCHAR(100)"),
+        ("expansion_signal", "TEXT"),
+        ("expansion_date", "DATE"),
+        ("primary_product_opportunity", "VARCHAR(255)"),
+        ("contact_external_id", "VARCHAR(255)"),
+        ("contact_name", "VARCHAR(255)"),
+    ]
+    with db.engine.connect() as conn:
+        existing = {row[1] for row in conn.execute(db.text("PRAGMA table_info(csqls)"))}
+        for col, col_type in cols_to_add:
+            if col not in existing:
+                conn.execute(db.text(f"ALTER TABLE csqls ADD COLUMN {col} {col_type}"))
+        conn.commit()
+
+
 def create_app():
     app = Flask(__name__)
     app.secret_key = os.getenv("SECRET_KEY", "dev-secret-key-change-me")
@@ -21,6 +43,7 @@ def create_app():
 
     with app.app_context():
         db.create_all()
+        _migrate(db)
 
     @app.template_filter("currency")
     def format_currency(value):
